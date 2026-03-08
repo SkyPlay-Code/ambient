@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FOCAL | Inked Concrete</title>
+  
+  <!-- Fonts: Bebas Neue for brutalist headings, Lora for dreamy editorial body -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    /* ------------------------------------------------------------------------
+       AESTHETIC & VARIABLES
+    ------------------------------------------------------------------------ */
+    :root {
+      --bg: #0e0d0b;
+      --chartreuse: #d4f060;
+      --orange: #e8622a;
+      --lavender: #b89fd4;
+      --text: #f0f0ed;
+      --border-chunky: 4px solid var(--text);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Lora', serif;
+      height: 100vh;
+      overflow: hidden;
+      cursor: none; /* Custom cursor */
+      position: relative;
+    }
+
+    /* Paper Grain & Noise Overlay */
+    .noise-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.15;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    /* Ambient Particles */
+    #particles {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(4px);
+      animation: float 20s infinite linear;
+      opacity: 0.4;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0) rotate(0deg) scale(1); }
+      50% { transform: translateY(-100px) rotate(180deg) scale(1.2); }
+      100% { transform: translateY(0) rotate(360deg) scale(1); }
+    }
+
+    /* Custom Cursor */
+    .cursor {
+      position: fixed;
+      top: 0; left: 0;
+      width: 20px; height: 20px;
+      pointer-events: none;
+      z-index: 10000;
+      transform: translate(-50%, -50%);
+    }
+    .cursor::before, .cursor::after {
+      content: '';
+      position: absolute;
+      background: var(--chartreuse);
+    }
+    .cursor::before { top: 9px; left: 0; width: 20px; height: 2px; }
+    .cursor::after { top: 0; left: 9px; width: 2px; height: 20px; }
+    
+    .cursor-follower {
+      position: fixed;
+      top: 0; left: 0;
+      width: 6px; height: 6px;
+      background: var(--orange);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.05s linear;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--chartreuse); }
+
+    /* ------------------------------------------------------------------------
+       LAYOUT
+    ------------------------------------------------------------------------ */
+    .layout {
+      display: flex;
+      height: 100vh;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Logo */
+    .logo {
+      position: absolute;
+      top: 30px;
+      left: 40px;
+      font-family: 'Bebas Neue', cursive;
+      font-size: 5rem;
+      letter-spacing: 0.05em;
+      color: var(--text);
+      transform: rotate(-2deg);
+      text-shadow: 4px 4px 0px var(--lavender);
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    /* ------------------------------------------------------------------------
+       PLAYER SECTION (LEFT)
+    ------------------------------------------------------------------------ */
+    .player-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .now-playing-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    /* Gradient Blob Artwork */
+    .album-art {
+      width: 320px;
+      height: 320px;
+      margin-bottom: 2rem;
+      background: linear-gradient(135deg, var(--chartreuse), var(--orange), var(--lavender));
+      background-size: 300% 300%;
+      box-shadow: 8px 8px 0px var(--bg), 12px 12px 0px var(--lavender);
+      border: 4px solid var(--text);
+      animation: morphBlob 10s ease-in-out infinite alternate, gradientShift 8s ease infinite;
+    }
+
+    @keyframes morphBlob {
+      0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+      50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+      100% { border-radius: 40% 70% 30% 60% / 40% 40% 60% 50%; }
+    }
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Track Info */
+    .track-title {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 4.5rem;
+      line-height: 1;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 0.5rem;
+      text-shadow: 2px 2px 0px var(--orange);
+    }
+    .track-tags {
+      font-style: italic;
+      font-size: 1.1rem;
+      color: var(--lavender);
+      margin-bottom: 2rem;
+      border: 2px solid var(--lavender);
+      padding: 0.2rem 1rem;
+      border-radius: 2px 10px 4px 8px;
+      transform: rotate(1deg);
+      background: rgba(184, 159, 212, 0.05);
+    }
+
+    /* Scrubber & Visualizer */
+    .visualizer {
+      display: flex;
+      gap: 3px;
+      height: 30px;
+      align-items: flex-end;
+      width: 100%;
+      margin-bottom: -2px; /* Pull into scrubber visually */
+      padding: 0 10px;
+    }
+    .viz-bar {
+      flex: 1;
+      background: var(--orange);
+      height: 5px;
+      transform-origin: bottom;
+      transition: height 0.2s;
+    }
+    .playing .viz-bar {
+      animation: bounceViz 0.5s ease-in-out infinite alternate;
+    }
+    @keyframes bounceViz {
+      0% { height: 5px; }
+      100% { height: 100%; }
+    }
+
+    .scrubber-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 2rem;
+    }
+    .scrubber-bar {
+      width: 100%;
+      height: 24px;
+      border: 3px solid var(--text);
+      border-radius: 2px 8px 3px 6px;
+      cursor: none; /* using custom cursor */
+      position: relative;
+      background: var(--bg);
+      box-shadow: 4px 4px 0px var(--chartreuse);
+    }
+    .scrubber-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--chartreuse);
+      border-right: 3px solid var(--text);
+      pointer-events: none;
+    }
+    .time-display {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.5rem;
+      font-family: 'Bebas Neue', cursive;
+      font-size: 1.2rem;
+      letter-spacing: 2px;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    button {
+      background: none;
+      border: none;
+      cursor: none;
+      color: var(--text);
+      font-family: 'Bebas Neue', cursive;
+      font-size: 1.5rem;
+      text-transform: uppercase;
+      transition: transform 0.1s;
+    }
+    button:active { transform: scale(0.95); }
+    
+    .btn-circle {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: 3px solid var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      position: relative;
+      background: var(--bg);
+      box-shadow: 4px 4px 0px var(--lavender);
+    }
+
+    /* Splatter Animation */
+    .btn-circle::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 100%; height: 100%;
+      background: var(--orange);
+      border-radius: 50%;
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0;
+      z-index: -1;
+    }
+    .btn-circle.splatter::before {
+      animation: splatterAnim 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+    @keyframes splatterAnim {
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+    }
+
+    .btn-text {
+      position: relative;
+      padding: 0.5rem;
+    }
+    /* Animated underline for LOOP */
+    .btn-text.loop-btn::after {
+      content: ''; position: absolute; bottom: 0; left: 0; height: 3px; background: var(--chartreuse); width: 0; transition: width 0.3s ease;
+    }
+    .btn-text.loop-btn.active::after { width: 100%; }
+    .btn-text.shuffle-btn.active { color: var(--orange); }
+
+    /* Analog Volume Dial */
+    .volume-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: 1rem;
+    }
+    .volume-label { font-family: 'Bebas Neue'; font-size: 1.2rem; }
+    .volume-dial {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid var(--text);
+      background: var(--bg);
+      box-shadow: 2px 2px 0px var(--orange);
+      position: relative;
+      cursor: none;
+      transform: rotate(0deg); /* Manipulated via JS */
+    }
+    .volume-dial::after {
+      content: ''; position: absolute; top: 4px; left: 50%; width: 4px; height: 10px; background: var(--chartreuse); transform: translateX(-50%); border-radius: 2px;
+    }
+
+    /* ------------------------------------------------------------------------
+       PLAYLIST SECTION (RIGHT)
+    ------------------------------------------------------------------------ */
+    .playlist-section {
+      width: 450px;
+      border-left: 3px solid var(--text);
+      background: rgba(14, 13, 11, 0.8);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .playlist-header {
+      padding: 2rem;
+      border-bottom: 2px dashed var(--lavender);
+    }
+    .playlist-header h2 {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 2.5rem;
+      letter-spacing: 2px;
+      color: var(--chartreuse);
+    }
+
+    .track-list {
+      list-style: none;
+      padding: 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .track-card {
+      background: var(--bg);
+      border: 2px solid var(--text);
+      border-radius: 2px 12px 4px 8px; /* Torn paper uneven feel */
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      cursor: none;
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 4px 4px 0px rgba(255, 255, 255, 0.05);
+      
+      /* Subtle noise texture */
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+      
+      /* Staggered Load */
+      opacity: 0;
+      transform: translateX(50px);
+      animation: slideIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    @keyframes slideIn {
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .track-card:hover {
+      transform: scale(1.02) rotate(-1deg);
+      box-shadow: 6px 6px 0px var(--lavender);
+    }
+
+    .track-card.active {
+      border-left: 8px solid var(--chartreuse);
+      transform: rotate(1deg);
+      box-shadow: 4px 4px 0px var(--orange);
+    }
+
+    .color-dot {
+      width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--text);
+    }
+    .track-card:nth-child(3n+1) .color-dot { background: var(--chartreuse); }
+    .track-card:nth-child(3n+2) .color-dot { background: var(--orange); }
+    .track-card:nth-child(3n+3) .color-dot { background: var(--lavender); }
+
+    .track-card-info { flex: 1; }
+    .track-card-title {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 1.5rem;
+      letter-spacing: 1px;
+    }
+    .track-card-meta {
+      font-size: 0.85rem;
+      color: #999;
+      font-style: italic;
+    }
+
+    /* Footer */
+    footer {
+      position: absolute;
+      bottom: 10px;
+      right: 20px;
+      font-size: 0.8rem;
+      font-style: italic;
+      color: #666;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .layout { flex-direction: column; overflow-y: auto; overflow-x: hidden;}
+      .player-section { flex: none; min-height: 100vh; }
+      .playlist-section { width: 100%; border-left: none; border-top: 3px solid var(--text); }
+      .logo { top: 10px; left: 10px; font-size: 3rem; }
+      body { overflow: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient background elements -->
+  <div class="noise-overlay"></div>
+  <div id="particles"></div>
+
+  <!-- Custom Cursor -->
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-follower" id="cursor-follower"></div>
+
+  <div class="logo">FOCAL</div>
+
+  <main class="layout">
+    <!-- Player -->
+    <section class="player-section">
+      <div class="now-playing-card">
+        
+        <div class="album-art"></div>
+        
+        <h1 class="track-title" id="ui-title">Loading...</h1>
+        <div class="track-tags" id="ui-tags">deep focus · 0bpm · no words</div>
+
+        <div class="scrubber-container">
+          <div class="visualizer" id="visualizer">
+            <!-- Bars generated via JS -->
+          </div>
+          <div class="scrubber-bar" id="scrubber">
+            <div class="scrubber-fill" id="scrubber-fill"></div>
+          </div>
+          <div class="time-display">
+            <span id="ui-current-time">0:00</span>
+            <span id="ui-duration">0:00</span>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="btn-text shuffle-btn" id="btn-shuffle">SHUFFLE</button>
+          <button class="btn-text" id="btn-prev">PREV</button>
+          <button class="btn-circle" id="btn-play-pause">
+            <span id="play-icon">▶</span>
+          </button>
+          <button class="btn-text" id="btn-next">NEXT</button>
+          <button class="btn-text loop-btn" id="btn-loop">LOOP</button>
+          
+          <div class="volume-wrapper" title="Drag up/down to adjust">
+            <div class="volume-label">VOL</div>
+            <div class="volume-dial" id="volume-dial"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Playlist -->
+    <section class="playlist-section">
+      <div class="playlist-header">
+        <h2>THE INDEX</h2>
+      </div>
+      <ul class="track-list" id="track-list">
+        <!-- Rendered via JS -->
+      </ul>
+    </section>
+  </main>
+
+  <footer>made for focus. nothing else.</footer>
+
+  <script>
+    /* ------------------------------------------------------------------------
+       DATA / TRACK SETUP
+    ------------------------------------------------------------------------ */
+    // Using requested folder paths. If deployed without files, HTML5 Audio 
+    // will throw an error, but the UI remains functional for demoing states.
+    const tracks = [
+      { file: 'music/track1.mp3', title: 'Soft Piano', duration: '1:38', bpm: 70, mood: 'soft time' },
+      { file: 'music/track2.mp3', title: 'Going On', duration: '3:16', bpm: 70, mood: 'focus' },
+      ];
+
+    /* ------------------------------------------------------------------------
+       STATE
+    ------------------------------------------------------------------------ */
+    const state = {
+      currentIndex: 0,
+      isPlaying: false,
+      isShuffle: false,
+      loopState: 0, // 0 = off, 1 = playlist, 2 = track
+      volume: 0.8
+    };
+
+    let audio = new Audio();
+    audio.volume = state.volume;
+
+    // A fallback timer to visually animate scrubber if audio fails to load
+    let mockPlaybackInterval = null;
+    let mockCurrentTime = 0;
+    let isMocking = false;
+
+    /* ------------------------------------------------------------------------
+       DOM ELEMENTS
+    ------------------------------------------------------------------------ */
+    const uiTitle = document.getElementById('ui-title');
+    const uiTags = document.getElementById('ui-tags');
+    const uiCurrentTime = document.getElementById('ui-current-time');
+    const uiDuration = document.getElementById('ui-duration');
+    const scrubber = document.getElementById('scrubber');
+    const scrubberFill = document.getElementById('scrubber-fill');
+    const btnPlayPause = document.getElementById('btn-play-pause');
+    const playIcon = document.getElementById('play-icon');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const btnLoop = document.getElementById('btn-loop');
+    const btnShuffle = document.getElementById('btn-shuffle');
+    const trackListContainer = document.getElementById('track-list');
+    const visualizer = document.getElementById('visualizer');
+    const volumeDial = document.getElementById('volume-dial');
+
+    /* ------------------------------------------------------------------------
+       INITIALIZATION
+    ------------------------------------------------------------------------ */
+    function init() {
+      generateParticles();
+      generateVisualizerBars();
+      renderPlaylist();
+      loadTrack(0);
+      setupEventListeners();
+      setupCursor();
+      updateVolumeDial(state.volume);
+    }
+
+    function generateParticles() {
+      const container = document.getElementById('particles');
+      const colors = ['#b89fd4', '#e8622a', '#d4f060'];
+      for(let i=0; i<30; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random() * 15 + 5;
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.top = Math.random() * 100 + 'vh';
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.animationDelay = (Math.random() * 10) + 's';
+        p.style.animationDuration = (Math.random() * 20 + 10) + 's';
+        container.appendChild(p);
+      }
+    }
+
+    function generateVisualizerBars() {
+      for(let i=0; i<20; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'viz-bar';
+        bar.style.animationDelay = (Math.random() * 0.5) + 's';
+        visualizer.appendChild(bar);
+      }
+    }
+
+    function renderPlaylist() {
+      trackListContainer.innerHTML = '';
+      tracks.forEach((track, index) => {
+        const li = document.createElement('li');
+        li.className = 'track-card';
+        li.style.animationDelay = (index * 0.1) + 's';
+        li.dataset.index = index;
+        
+        li.innerHTML = `
+          <div class="color-dot"></div>
+          <div class="track-card-info">
+            <div class="track-card-title">${track.title}</div>
+            <div class="track-card-meta">${track.mood} · ${track.bpm}bpm</div>
+          </div>
+          <div class="track-duration">${track.duration}</div>
+        `;
+        
+        li.addEventListener('click', () => {
+          loadTrack(index);
+          playTrack();
+        });
+        
+        trackListContainer.appendChild(li);
+      });
+    }
+
+    /* ------------------------------------------------------------------------
+       AUDIO & LOGIC
+    ------------------------------------------------------------------------ */
+    function loadTrack(index) {
+      state.currentIndex = index;
+      const t = tracks[index];
+      audio.src = t.file;
+      
+      uiTitle.innerText = t.title;
+      uiTags.innerText = `${t.mood} · ${t.bpm}bpm · focus`;
+      uiDuration.innerText = t.duration;
+      uiCurrentTime.innerText = '0:00';
+      scrubberFill.style.width = '0%';
+      mockCurrentTime = 0;
+      isMocking = false;
+
+      // Update Playlist UI
+      document.querySelectorAll('.track-card').forEach(el => el.classList.remove('active'));
+      const activeCard = trackListContainer.querySelector(`.track-card[data-index="${index}"]`);
+      if(activeCard) activeCard.classList.add('active');
+    }
+
+    function playTrack() {
+      state.isPlaying = true;
+      playIcon.innerText = 'II';
+      visualizer.classList.add('playing');
+      
+      // Splatter animation
+      btnPlayPause.classList.remove('splatter');
+      void btnPlayPause.offsetWidth; // trigger reflow
+      btnPlayPause.classList.add('splatter');
+
+      audio.play().catch(e => {
+        // Fallback for demo without real files: mock playback visually
+        console.warn('Audio file not found or blocked. Mocking playback visually.');
+        isMocking = true;
+        if(mockPlaybackInterval) clearInterval(mockPlaybackInterval);
+        mockPlaybackInterval = setInterval(mockTimeUpdate, 1000);
+      });
+    }
+
+    function pauseTrack() {
+      state.isPlaying = false;
+      playIcon.innerText = '▶';
+      visualizer.classList.remove('playing');
+      audio.pause();
+      if(isMocking) clearInterval(mockPlaybackInterval);
+    }
+
+    function togglePlay() {
+      state.isPlaying ? pauseTrack() : playTrack();
+    }
+
+    function nextTrack() {
+      let nextIndex = state.currentIndex + 1;
+      if(state.isShuffle) {
+        nextIndex = Math.floor(Math.random() * tracks.length);
+      } else if(nextIndex >= tracks.length) {
+        nextIndex = 0; // Wrap around
+      }
+      loadTrack(nextIndex);
+      if(state.isPlaying) playTrack();
+    }
+
+    function prevTrack() {
+      let prevIndex = state.currentIndex - 1;
+      if(prevIndex < 0) prevIndex = tracks.length - 1;
+      loadTrack(prevIndex);
+      if(state.isPlaying) playTrack();
+    }
+
+    // Audio Event Listeners
+    audio.addEventListener('timeupdate', () => {
+      if(isMocking) return;
+      if (!audio.duration) return;
+      const percent = (audio.currentTime / audio.duration) * 100;
+      scrubberFill.style.width = `${percent}%`;
+      uiCurrentTime.innerText = formatTime(audio.currentTime);
+    });
+
+    audio.addEventListener('ended', () => {
+      if(state.loopState === 2) {
+        // Loop current track
+        audio.currentTime = 0;
+        playTrack();
+      } else if (state.loopState === 1 || state.currentIndex < tracks.length - 1 || state.isShuffle) {
+        nextTrack();
+      } else {
+        pauseTrack(); // End of playlist
+      }
+    });
+
+    // Mock functions to keep UI alive when local files are missing
+    function mockTimeUpdate() {
+      mockCurrentTime += 1;
+      const parts = tracks[state.currentIndex].duration.split(':');
+      const totalSecs = parseInt(parts[0])*60 + parseInt(parts[1]);
+      
+      if(mockCurrentTime >= totalSecs) {
+        mockCurrentTime = 0;
+        audio.dispatchEvent(new Event('ended'));
+        return;
+      }
+      const percent = (mockCurrentTime / totalSecs) * 100;
+      scrubberFill.style.width = `${percent}%`;
+      uiCurrentTime.innerText = formatTime(mockCurrentTime);
+    }
+
+    /* ------------------------------------------------------------------------
+       INTERACTIONS
+    ------------------------------------------------------------------------ */
+    function setupEventListeners() {
+      btnPlayPause.addEventListener('click', togglePlay);
+      btnNext.addEventListener('click', nextTrack);
+      btnPrev.addEventListener('click', prevTrack);
+      
+      btnShuffle.addEventListener('click', () => {
+        state.isShuffle = !state.isShuffle;
+        btnShuffle.classList.toggle('active', state.isShuffle);
+      });
+
+      btnLoop.addEventListener('click', () => {
+        state.loopState = (state.loopState + 1) % 3;
+        if(state.loopState === 0) {
+          btnLoop.classList.remove('active');
+          btnLoop.innerText = 'LOOP';
+        } else if(state.loopState === 1) {
+          btnLoop.classList.add('active');
+          btnLoop.innerText = 'LOOP ALL';
+        } else {
+          btnLoop.classList.add('active');
+          btnLoop.innerText = 'LOOP 1';
+        }
+      });
+
+      // Scrubber seeking
+      scrubber.addEventListener('click', (e) => {
+        const rect = scrubber.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const percent = Math.max(0, Math.min(1, clickX / rect.width));
+        
+        if(!isMocking && audio.duration) {
+          audio.currentTime = percent * audio.duration;
+        } else if (isMocking) {
+          const parts = tracks[state.currentIndex].duration.split(':');
+          const totalSecs = parseInt(parts[0])*60 + parseInt(parts[1]);
+          mockCurrentTime = percent * totalSecs;
+          scrubberFill.style.width = `${percent * 100}%`;
+          uiCurrentTime.innerText = formatTime(mockCurrentTime);
+        }
+      });
+
+      // Analog Volume Dial
+      let isDragging = false;
+      let startY = 0;
+      let startVol = 0;
+
+      volumeDial.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startY = e.clientY;
+        startVol = state.volume;
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if(!isDragging) return;
+        const deltaY = startY - e.clientY; 
+        // 100px drag = full volume range
+        let newVol = startVol + (deltaY / 100);
+        newVol = Math.max(0, Math.min(1, newVol));
+        state.volume = newVol;
+        audio.volume = newVol;
+        updateVolumeDial(newVol);
+      });
+
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+    }
+
+    function updateVolumeDial(vol) {
+      // Map 0 -> 1 to -135deg -> +135deg
+      const angle = -135 + (vol * 270);
+      volumeDial.style.transform = `rotate(${angle}deg)`;
+    }
+
+    /* ------------------------------------------------------------------------
+       UTILITIES & EFFECTS
+    ------------------------------------------------------------------------ */
+    function formatTime(secs) {
+      const mins = Math.floor(secs / 60);
+      const remainingSecs = Math.floor(secs % 60);
+      return `${mins}:${remainingSecs < 10 ? '0' : ''}${remainingSecs}`;
+    }
+
+    function setupCursor() {
+      const cursor = document.getElementById('cursor');
+      const follower = document.getElementById('cursor-follower');
+      
+      let mouseX = window.innerWidth/2;
+      let mouseY = window.innerHeight/2;
+      let followerX = mouseX;
+      let followerY = mouseY;
+
+      document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        cursor.style.transform = `translate(${mouseX}px, ${mouseY}px)`;
+      });
+
+      function animateFollower() {
+        followerX += (mouseX - followerX) * 0.15;
+        followerY += (mouseY - followerY) * 0.15;
+        follower.style.transform = `translate(${followerX}px, ${followerY}px)`;
+        requestAnimationFrame(animateFollower);
+      }
+      animateFollower();
+      
+      // Expand dot on click
+      document.addEventListener('mousedown', () => {
+        follower.style.transform = `translate(${followerX}px, ${followerY}px) scale(2)`;
+      });
+      document.addEventListener('mouseup', () => {
+        follower.style.transform = `translate(${followerX}px, ${followerY}px) scale(1)`;
+      });
+    }
+
+    /* Kickoff */
+    window.addEventListener('DOMContentLoaded', init);
+
+  </script>
+</body>
+</html>
